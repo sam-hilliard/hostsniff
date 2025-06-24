@@ -96,6 +96,15 @@ def init_arg_parse():
         type=int,
         help="Stop capture after certain number of packets",
     )
+
+    # time limit
+    parser.add_argument(
+        "-t", "--time",
+        metavar="time limit (minutes)",
+        type=int,
+        help="Stop capture after certain number of minutes"
+    )
+
     args = parser.parse_args()
 
     # Validating interface
@@ -104,6 +113,10 @@ def init_arg_parse():
         parser.error(f"Invalid interface: '{args.interface}'. Available: {', '.join(available_ifaces)}")
 
     return args
+
+def should_continue(live, args):
+    """Returns True while capture should continue"""
+    return running and (args.time is None or (time() - start_time) / 60 < args.time) and (args.count is None or packet_count < args.count)
 
 if __name__ == "__main__":
 
@@ -119,7 +132,8 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"[-] Warning: Could not update vendor database: {e}")
 
+    start_time = time()
     with Live(build_view(), refresh_per_second=3) as live:
-        while running and (args.count is None or packet_count < args.count):
+        while should_continue(live, args):
             sniff(iface=args.interface, filter="broadcast or multicast", prn=handle_packet, store=False, timeout=1)
             live.update(build_view())
