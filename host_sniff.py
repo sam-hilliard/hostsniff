@@ -119,19 +119,7 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"[-] Warning: Could not update vendor database: {e}")
 
-    sniff_args = {
-        "iface": args.interface,
-        "filter": "broadcast or multicast",
-        "prn": handle_packet,
-        "store": False,
-        "timeout": 1,
-    }
-
-    if args.count is not None:
-        sniff_args["count"] = args.count
-    
-    with Live(build_view(), refresh_per_second=2) as live:
-        while running:
-            sniff(**sniff_args)
-            if running:
-                live.update(build_view())
+    with Live(build_view(), refresh_per_second=3) as live:
+        while running and (args.count is None or packet_count < args.count):
+            sniff(iface=args.interface, filter="broadcast or multicast", prn=handle_packet, store=False, timeout=1)
+            live.update(build_view())
