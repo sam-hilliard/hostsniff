@@ -80,11 +80,21 @@ def init_arg_parse():
     parser = argparse.ArgumentParser(
         description="Passive network host discovery tool."
     )
+
+    # interface selection
     parser.add_argument(
         "-i", "--interface",
-        metavar="<interface",
+        metavar="<interface>",
         help="Network interface to listen on (default: Auto-detected active interface)",
         default=conf.iface
+    )
+
+    # packet limit
+    parser.add_argument(
+        "-c", "--count",
+        metavar="packet limit",
+        type=int,
+        help="Stop capture after certain number of packets",
     )
     args = parser.parse_args()
 
@@ -108,15 +118,20 @@ if __name__ == "__main__":
         print("[+] Database up to date.")
     except Exception as e:
         print(f"[-] Warning: Could not update vendor database: {e}")
+
+    sniff_args = {
+        "iface": args.interface,
+        "filter": "broadcast or multicast",
+        "prn": handle_packet,
+        "store": False,
+        "timeout": 1,
+    }
+
+    if args.count is not None:
+        sniff_args["count"] = args.count
     
     with Live(build_view(), refresh_per_second=2) as live:
         while running:
-            sniff(
-                iface=args.interface,
-                filter="broadcast or multicast",
-                prn=handle_packet,
-                store=False,
-                timeout=1,
-            )
+            sniff(**sniff_args)
             if running:
                 live.update(build_view())
