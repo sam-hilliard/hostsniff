@@ -8,6 +8,7 @@ from rich import box
 from time import time
 from mac_vendor_lookup import MacLookup
 import signal
+import xml.etree.ElementTree as ET
 
 seen_hosts = {}
 start_time = time()
@@ -67,11 +68,33 @@ def handle_packet(pkt):
 
     packet_count += 1
 
-def export_results(filename):
-    with open(filename, "w") as f:
-        f.write("{:<20}\t{:<20}\t{:<20}\n".format("IP Address", "MAC Address", "Vendor"))
-        for ip, data in seen_hosts.items():
-            f.write("{:<20}\t{:<20}\t{}\n".format(ip, data['mac'], data['vendor']))
+def export_nmap_xml(filename, hosts):
+    nmaprun = ET.Element("nmaprun")
+
+    for ip, data in hosts.items():
+        host = ET.SubElement(nmaprun, "host")
+        ET.SubElement(host, "status", state="up")
+        ET.SubElement(host, "address", addr=ip, addrtype="ipv4")
+        ET.SubElement(host, "address", addr=data["mac"], addrtype="mac", vendor=data["vendor"])
+
+    tree = ET.ElementTree(nmaprun)
+    tree.write(filename, encoding="unicode", xml_declaration=True)
+    print(f"[+] Nmap-style XML written to {filename}")
+
+def export_results(filename, filetype):
+    if filetype == "N":
+        with open(filename, "w") as f:
+            f.write("{:<20}\t{:<20}\t{:<20}\n".format("IP Address", "MAC Address", "Vendor"))
+            for ip, data in seen_hosts.items():
+                f.write("{:<20}\t{:<20}\t{}\n".format(ip, data['mac'], data['vendor']))
+    elif filetype == "J":
+        import json
+        with open(filename, "w") as f:
+            json.dump(seen_hosts, f, indent=4)
+    elif filetype == "X":
+        export_nmap_xml(filename, seen_hosts)
+    else:
+        raise ValueError("Invalid filetype")
     print(f"[+] Results written to {filename}")
 
 def init_arg_parse():
@@ -80,6 +103,8 @@ def init_arg_parse():
     parser.add_argument("-c", "--count", metavar="packet limit", type=int, help="Stop capture after certain number of packets")
     parser.add_argument("-t", "--time", metavar="time limit (minutes)", type=int, help="Stop capture after certain number of minutes")
     parser.add_argument("-o", "--output", metavar="<filename>", help="Output results to a text file", type=str)
+    parser.add_argument("-oJ", "--output-json", metavar="<filename>", help="Output results to a JSON file", type=str)
+    parser.add_argument("-oX", "--output-xml", metavar="<filename>", help="Output results to an XML file", type=str)
     args = parser.parse_args()
 
     available_ifaces = get_if_list()
@@ -103,5 +128,10 @@ if __name__ == "__main__":
             sniff(iface=args.interface, filter="broadcast or multicast", prn=handle_packet, store=False, timeout=1)
             live.update(build_view())
 
+    # export results to a file
     if args.output:
-        export_results(args.output)
+        export_results(args.output, "N")
+    elif args.output_json:
+        export_results(args.output_json, "J")
+    elif args.output_xml:
+        export_results(args.output_xml, "X")
