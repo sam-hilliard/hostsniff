@@ -9,6 +9,7 @@ from time import time
 from mac_vendor_lookup import MacLookup
 import signal
 import xml.etree.ElementTree as ET
+import os
 
 seen_hosts = {}
 start_time = time()
@@ -124,6 +125,11 @@ def should_continue(live, args):
     return running and (args.time is None or (time() - start_time) / 60 < args.time) and (args.count is None or packet_count < args.count)
 
 if __name__ == "__main__":
+    
+    if os.getuid() != 0:
+        print("[-] You don't have sufficient privileges to run this script, try running with sudo.")
+        exit(1)
+
     signal.signal(signal.SIGINT, signal_handler)
     args = init_arg_parse()
 
