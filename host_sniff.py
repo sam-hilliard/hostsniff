@@ -93,9 +93,14 @@ def export_results(filename, filetype):
             json.dump(seen_hosts, f, indent=4)
     elif filetype == "X":
         export_nmap_xml(filename, seen_hosts)
+    elif filetype == "A":
+        export_results(filename + ".txt", "N")
+        export_nmap_xml(filename + ".xml", seen_hosts)
+        export_results(filename + ".json", "J")
     else:
         raise ValueError("Invalid filetype")
-    print(f"[+] Results written to {filename}")
+    if filetype != "A":
+        print(f"[+] Results written to {filename}")
 
 def init_arg_parse():
     parser = argparse.ArgumentParser(description="Passive network host discovery tool.")
@@ -105,6 +110,8 @@ def init_arg_parse():
     parser.add_argument("-o", "--output", metavar="<filename>", help="Output results to a text file", type=str)
     parser.add_argument("-oJ", "--output-json", metavar="<filename>", help="Output results to a JSON file", type=str)
     parser.add_argument("-oX", "--output-xml", metavar="<filename>", help="Output results to an XML file", type=str)
+    parser.add_argument("-oA", "--output-all", metavar="<filename>", help="Output results to a text, JSON, and XML file", type=str)
+    
     args = parser.parse_args()
 
     available_ifaces = get_if_list()
@@ -135,3 +142,5 @@ if __name__ == "__main__":
         export_results(args.output_json, "J")
     elif args.output_xml:
         export_results(args.output_xml, "X")
+    elif args.output_all:
+        export_results(args.output_all, "A")
