@@ -1,0 +1,3 @@
+scapy
+rich
+mac-vendor-lookup
