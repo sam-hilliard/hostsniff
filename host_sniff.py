@@ -96,12 +96,6 @@ if __name__ == "__main__":
     args = init_arg_parse()
 
     print(f"[+] Using interface: {args.interface}")
-    print("[+] Updating MAC vendor lookup database...")
-    try:
-        mac_lookup.update_vendors()
-        print("[+] Database up to date.")
-    except Exception as e:
-        print(f"[-] Warning: Could not update vendor database: {e}")
 
     start_time = time()
     with Live(build_view(), refresh_per_second=3) as live:
